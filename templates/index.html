@@ -396,6 +396,44 @@
         border-radius: 0;
       }
     }
+
+    /* إضافة تنسيق للقوائم المنسدلة */
+    select {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: left 1rem center;
+      background-size: 1em;
+      padding-left: 3rem;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      background-color: white;
+    }
+
+    select:hover {
+      border-color: var(--accent-color);
+    }
+
+    .time-input {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .time-input select {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -426,12 +464,50 @@
         <form id="workForm">
           <div class="form-group">
             <label for="start">وقت البدء:</label>
-            <input type="time" id="start" required step="1">
+            <div class="time-input">
+              <select id="startHour" required>
+                <option value="">الساعة</option>
+                <script>
+                  for(let i = 0; i < 24; i++) {
+                    const hour = i.toString().padStart(2, '0');
+                    document.write(`<option value="${hour}">${hour}</option>`);
+                  }
+                </script>
+              </select>
+              <select id="startMinute" required>
+                <option value="">الدقيقة</option>
+                <script>
+                  for(let i = 0; i < 60; i += 5) {
+                    const minute = i.toString().padStart(2, '0');
+                    document.write(`<option value="${minute}">${minute}</option>`);
+                  }
+                </script>
+              </select>
+            </div>
           </div>
 
           <div class="form-group">
             <label for="end">وقت الانتهاء:</label>
-            <input type="time" id="end" required step="1">
+            <div class="time-input">
+              <select id="endHour" required>
+                <option value="">الساعة</option>
+                <script>
+                  for(let i = 0; i < 24; i++) {
+                    const hour = i.toString().padStart(2, '0');
+                    document.write(`<option value="${hour}">${hour}</option>`);
+                  }
+                </script>
+              </select>
+              <select id="endMinute" required>
+                <option value="">الدقيقة</option>
+                <script>
+                  for(let i = 0; i < 60; i += 5) {
+                    const minute = i.toString().padStart(2, '0');
+                    document.write(`<option value="${minute}">${minute}</option>`);
+                  }
+                </script>
+              </select>
+            </div>
           </div>
 
           <div class="form-group">
@@ -457,6 +533,29 @@
     </div>
 
     <div class="card">
+      <div class="section-title">سجل اليوم</div>
+      <div class="table-container">
+        <table id="todayEntriesTable">
+          <thead>
+            <tr>
+              <th>وقت البدء</th>
+              <th>وقت الانتهاء</th>
+              <th>عدد الساعات</th>
+              <th>الراتب اليومي</th>
+              <th>الساعات الإضافية</th>
+              <th>قيمة الساعة الإضافية</th>
+              <th>الراتب الأساسي</th>
+              <th>مجموع الراتب</th>
+              <th>ملاحظات</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="section-title">السجل الكامل</div>
       <div class="table-container">
         <table id="entriesTable">
@@ -467,9 +566,10 @@
               <th>وقت البدء</th>
               <th>وقت الانتهاء</th>
               <th>عدد الساعات</th>
+              <th>الراتب اليومي</th>
               <th>الساعات الإضافية</th>
               <th>قيمة الساعة الإضافية</th>
-              <th>الدفع الكلي</th>
+              <th>الراتب الأساسي</th>
               <th>مجموع الراتب</th>
               <th>ملاحظات</th>
               <th>إجراءات</th>
@@ -515,6 +615,46 @@
     const overtimeSummary = document.getElementById('overtimeSummary');
     const totalSalarySummary = document.getElementById('totalSalarySummary');
 
+    // دالة لتحديث وقت الانتهاء تلقائياً
+    function updateEndTime() {
+      const startHour = parseInt(document.getElementById('startHour').value) || 0;
+      const startMinute = parseInt(document.getElementById('startMinute').value) || 0;
+      
+      // حساب وقت الانتهاء (8 ساعات بعد وقت البدء)
+      let endHour = startHour + 8;
+      let endMinute = startMinute;
+      
+      // تصحيح الساعات إذا تجاوزت 24
+      if (endHour >= 24) {
+        endHour = endHour - 24;
+      }
+      
+      // تعبئة حقول وقت الانتهاء
+      document.getElementById('endHour').value = endHour.toString().padStart(2, '0');
+      document.getElementById('endMinute').value = endMinute.toString().padStart(2, '0');
+    }
+
+    // دالة لتعبئة الوقت الحالي
+    function setCurrentTime() {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = Math.floor(now.getMinutes() / 5) * 5; // تقريب الدقائق لأقرب 5
+      
+      // تعبئة وقت البدء بالوقت الحالي
+      document.getElementById('startHour').value = currentHour.toString().padStart(2, '0');
+      document.getElementById('startMinute').value = currentMinute.toString().padStart(2, '0');
+      
+      // تحديث وقت الانتهاء تلقائياً
+      updateEndTime();
+    }
+
+    // تعبئة الوقت الحالي عند تحميل الصفحة
+    window.addEventListener('load', setCurrentTime);
+
+    // تحديث وقت الانتهاء عند تغيير وقت البدء
+    document.getElementById('startHour').addEventListener('change', updateEndTime);
+    document.getElementById('startMinute').addEventListener('change', updateEndTime);
+
     // Load entries when page loads
     fetch('/api/entries')
       .then(response => response.json())
@@ -549,27 +689,47 @@
       e.preventDefault();
       
       // Get form values
-      const start = document.getElementById('start').value;
-      const end = document.getElementById('end').value;
+      const startHour = parseInt(document.getElementById('startHour').value);
+      const startMinute = parseInt(document.getElementById('startMinute').value);
+      const endHour = parseInt(document.getElementById('endHour').value);
+      const endMinute = parseInt(document.getElementById('endMinute').value);
       const note = document.getElementById('notes').value;
 
       // Validate inputs
-      if (!start || !end) {
-        showToast('الرجاء إدخال وقت البدء ووقت الانتهاء', 'error');
+      if (!startHour.toString() || !startMinute.toString() || !endHour.toString() || !endMinute.toString()) {
+        showToast('الرجاء إدخال وقت البدء ووقت الانتهاء بشكل كامل', 'error');
         return;
       }
 
-      const startTime = new Date(`1970-01-01T${start}`);
-      const endTime = new Date(`1970-01-01T${end}`);
+      const start = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+      const end = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+
+      // حساب الفرق بين الأوقات مع مراعاة اليوم التالي
+      let totalHours;
       
-      // Validate time order
-      if (endTime <= startTime) {
-        showToast('وقت الانتهاء يجب أن يكون بعد وقت البدء', 'error');
+      // تحويل الأوقات إلى دقائق للمقارنة
+      const startTotalMinutes = startHour * 60 + startMinute;
+      const endTotalMinutes = endHour * 60 + endMinute;
+      
+      // حساب الفرق بين الأوقات
+      if (endTotalMinutes < startTotalMinutes) {
+        // إذا كان وقت الانتهاء أقل من وقت البدء، نفترض أنه في اليوم التالي
+        // مثال: من 19:00 إلى 04:00 في اليوم التالي
+        // (24 * 60 - 19 * 60) + (4 * 60) = 5 * 60 + 4 * 60 = 9 * 60 دقيقة = 9 ساعات
+        totalHours = (24 * 60 - startTotalMinutes + endTotalMinutes) / 60;
+      } else {
+        // إذا كان في نفس اليوم
+        // مثال: من 08:00 إلى 16:00
+        // (16 * 60 - 8 * 60) = 8 * 60 دقيقة = 8 ساعات
+        totalHours = (endTotalMinutes - startTotalMinutes) / 60;
+      }
+
+      // التحقق من صحة الساعات
+      if (totalHours <= 0) {
+        showToast('يجب أن يكون وقت الانتهاء بعد وقت البدء', 'error');
         return;
       }
 
-      const diff = (endTime - startTime) / (1000 * 60 * 60);
-      const totalHours = Math.max(diff, 0);
       const overtimeHours = Math.max(0, totalHours - 8);
       const overtimeRate = HOURLY_RATE * OVERTIME_MULTIPLIER;
       const pay = (Math.min(totalHours, 8) * HOURLY_RATE) + (overtimeHours * overtimeRate);
@@ -671,24 +831,54 @@
     }
 
     function renderEntries(list) {
+      // تحديث جدول السجل الكامل
       tableBody.innerHTML = '';
+      
+      // تحديث جدول سجل اليوم
+      const todayTableBody = document.querySelector('#todayEntriesTable tbody');
+      todayTableBody.innerHTML = '';
+      
+      const today = getTodayDate();
+      
       list.forEach(e => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${e.date}</td>
-          <td>${e.day}</td>
+        const isToday = e.date === today;
+        
+        // حساب الراتب اليومي (الساعات الفعلية)
+        const dailySalary = Math.min(e.totalHours, 8) * HOURLY_RATE;
+        
+        // حساب الراتب الأساسي (8 ساعات)
+        const baseSalary = 8 * HOURLY_RATE; // 14 × 8 = 112 شيكل
+        
+        // إنشاء صف مشترك
+        const commonColumns = `
           <td>${formatTime(e.start)}</td>
           <td>${formatTime(e.end)}</td>
           <td>${e.totalHours.toFixed(2)}</td>
+          <td>${dailySalary.toFixed(2)} ₪</td>
           <td>${e.overtimeHours.toFixed(2)}</td>
           <td>${(HOURLY_RATE * OVERTIME_MULTIPLIER).toFixed(2)} ₪</td>
-          <td>${e.pay.toFixed(2)} ₪</td>
+          <td>${baseSalary.toFixed(2)} ₪</td>
           <td>${e.pay.toFixed(2)} ₪</td>
           <td>${e.note}</td>
           <td>
             <i class="fas fa-edit action-icon edit-icon" title="تعديل" onclick="editEntry('${e.date}')"></i>
             <i class="fas fa-trash-alt action-icon delete-icon" title="حذف" onclick="showDeleteModal('${e.date}')"></i>
           </td>
+        `;
+
+        // إضافة السجل إلى جدول اليوم إذا كان اليوم الحالي
+        if (isToday) {
+          const todayRow = document.createElement('tr');
+          todayRow.innerHTML = commonColumns;
+          todayTableBody.appendChild(todayRow);
+        }
+
+        // إضافة السجل إلى السجل الكامل
+        row.innerHTML = `
+          <td>${e.date}</td>
+          <td>${e.day}</td>
+          ${commonColumns}
         `;
         tableBody.appendChild(row);
       });
@@ -731,8 +921,13 @@
       }
 
       // تحديث حقول النموذج بالقيم الحالية
-      document.getElementById('start').value = entry.start;
-      document.getElementById('end').value = entry.end;
+      const [startHour, startMinute] = entry.start.split(':');
+      const [endHour, endMinute] = entry.end.split(':');
+      
+      document.getElementById('startHour').value = startHour;
+      document.getElementById('startMinute').value = startMinute;
+      document.getElementById('endHour').value = endHour;
+      document.getElementById('endMinute').value = endMinute;
       document.getElementById('notes').value = entry.note;
 
       // تعطيل زر الإضافة مؤقتاً
