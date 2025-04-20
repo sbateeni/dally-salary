@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>تسجيل ساعات العمل</title>
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      background: linear-gradient(to right, #f0f4f8, #e0ecf4);
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #1e3a5f;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 900px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    input, button {
+      padding: 10px;
+      margin-bottom: 15px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #1e3a5f;
+      color: white;
+      border: none;
+      transition: background-color 0.3s ease;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #355d8c;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px 8px;
+      border-bottom: 1px solid #ccc;
+      text-align: center;
+    }
+
+    th {
+      background: #1e3a5f;
+      color: white;
+    }
+
+    .summary {
+      font-weight: bold;
+      text-align: center;
+      color: #1e3a5f;
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    .section-title {
+      margin-bottom: 10px;
+      font-size: 20px;
+      color: #1e3a5f;
+      border-bottom: 2px solid #1e3a5f;
+      display: inline-block;
+      padding-bottom: 5px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 10px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-name {
+      font-weight: bold;
+      color: #1e3a5f;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .header-button {
+      padding: 8px 15px;
+      background-color: #1e3a5f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s ease;
+    }
+
+    .header-button:hover {
+      background-color: #355d8c;
+    }
+
+    .switch-account {
+      background-color: #2e7d32;
+    }
+
+    .switch-account:hover {
+      background-color: #388e3c;
+    }
+
+    .logout {
+      background-color: #c62828;
+    }
+
+    .logout:hover {
+      background-color: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="user-info">
+      <span class="user-name">مرحباً، {{ current_user.username }}</span>
+    </div>
+    <div class="header-buttons">
+      <a href="{{ url_for('login') }}" class="header-button switch-account">تبديل الحساب</a>
+      <a href="{{ url_for('logout') }}" class="header-button logout">تسجيل الخروج</a>
+    </div>
+  </div>
+
+  <h1>نظام تسجيل ساعات العمل</h1>
+
+  <div class="card">
+    <div class="section-title">إضافة الساعات</div>
+    <form id="workForm">
+      <label for="start">وقت البدء:</label>
+      <input type="time" id="start" required>
+
+      <label for="end">وقت الانتهاء:</label>
+      <input type="time" id="end" required>
+
+      <label for="notes">ملاحظات:</label>
+      <input type="text" id="notes" placeholder="مثلاً: عمل إضافي">
+
+      <button type="submit">إضافة</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="section-title">ملخص الساعات الإضافية</div>
+    <div class="summary" id="overtimeSummary"></div>
+    <div class="summary" id="totalSalarySummary"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">السجل الكامل</div>
+    <table id="entriesTable">
+      <thead>
+        <tr>
+          <th>التاريخ</th>
+          <th>اليوم</th>
+          <th>وقت البدء</th>
+          <th>وقت الانتهاء</th>
+          <th>عدد الساعات</th>
+          <th>الساعات الإضافية</th>
+          <th>قيمة الساعة الإضافية</th>
+          <th>الدفع الكلي</th>
+          <th>مجموع الراتب</th>
+          <th>ملاحظات</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="section-title">إجراءات</div>
+
+    <label>ابحث بالتاريخ:</label>
+    <input type="date" id="searchDate">
+    <button onclick="searchEntries()">بحث</button>
+
+    <label>احذف بالتاريخ:</label>
+    <input type="date" id="deleteDate">
+    <button onclick="deleteEntry()">حذف</button>
+
+    <button onclick="downloadExcel()">تحميل Excel</button>
+  </div>
+
+  <script>
+    const HOURLY_RATE = 14;
+    const OVERTIME_MULTIPLIER = 1.5;
+    let entries = [];
+    const form = document.getElementById('workForm');
+    const tableBody = document.querySelector('#entriesTable tbody');
+    const overtimeSummary = document.getElementById('overtimeSummary');
+    const totalSalarySummary = document.getElementById('totalSalarySummary');
+
+    // Load entries when page loads
+    fetch('/api/entries')
+      .then(response => response.json())
+      .then(data => {
+        entries = data;
+        renderEntries(entries);
+        updateSummary();
+      });
+
+    const getTodayDate = () => {
+      const today = new Date();
+      return today.toISOString().split("T")[0];
+    };
+
+    const getDayName = () => {
+      const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+      return days[new Date().getDay()];
+    };
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const date = getTodayDate();
+      const day = getDayName();
+      const start = document.getElementById('start').value;
+      const end = document.getElementById('end').value;
+      const note = document.getElementById('notes').value;
+
+      const startTime = new Date(`1970-01-01T${start}`);
+      const endTime = new Date(`1970-01-01T${end}`);
+      const diff = (endTime - startTime) / (1000 * 60 * 60);
+      const totalHours = Math.max(diff, 0);
+      const overtimeHours = Math.max(0, totalHours - 8);
+      const overtimeRate = HOURLY_RATE * OVERTIME_MULTIPLIER;
+      const pay = (Math.min(totalHours, 8) * HOURLY_RATE) + (overtimeHours * overtimeRate);
+
+      const entry = { date, day, start, end, totalHours, overtimeHours, pay, note };
+
+      fetch('/api/entries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(entry)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        entries.push(entry);
+        renderEntries(entries);
+        updateSummary();
+        form.reset();
+      });
+    });
+
+    function renderEntries(list) {
+      tableBody.innerHTML = '';
+      list.forEach(e => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${e.date}</td>
+          <td>${e.day}</td>
+          <td>${e.start}</td>
+          <td>${e.end}</td>
+          <td>${e.totalHours.toFixed(2)}</td>
+          <td>${e.overtimeHours.toFixed(2)}</td>
+          <td>${(HOURLY_RATE * OVERTIME_MULTIPLIER).toFixed(2)} ₪</td>
+          <td>${e.pay.toFixed(2)} ₪</td>
+          <td>${e.pay.toFixed(2)} ₪</td>
+          <td>${e.note}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function updateSummary() {
+      const totalOvertime = entries.reduce((sum, e) => sum + e.overtimeHours, 0);
+      const totalOvertimePay = totalOvertime * (HOURLY_RATE * OVERTIME_MULTIPLIER);
+      overtimeSummary.textContent = `إجمالي الساعات الإضافية: ${totalOvertime.toFixed(2)} ساعة | القيمة: ${totalOvertimePay.toFixed(2)} ₪`;
+
+      const totalSalary = entries.reduce((sum, e) => sum + e.pay, 0);
+      totalSalarySummary.textContent = `مجموع الراتب: ${totalSalary.toFixed(2)} ₪`;
+    }
+
+    function searchEntries() {
+      const date = document.getElementById('searchDate').value;
+      fetch(`/api/entries/search/${date}`)
+        .then(response => response.json())
+        .then(filtered => {
+          if (filtered.length === 0) {
+            alert("لا توجد نتائج.");
+            return;
+          }
+          renderEntries(filtered);
+        });
+    }
+
+    function deleteEntry() {
+      const date = document.getElementById('deleteDate').value;
+      if (!confirm(`هل تريد حذف البيانات ليوم ${date}؟`)) return;
+      
+      fetch(`/api/entries/${date}`, {
+        method: 'DELETE'
+      })
+      .then(response => response.json())
+      .then(() => {
+        entries = entries.filter(e => e.date !== date);
+        renderEntries(entries);
+        updateSummary();
+      });
+    }
+
+    function downloadExcel() {
+      window.location.href = '/api/export';
+    }
+  </script>
+
+</body>
+</html> 
