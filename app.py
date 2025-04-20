@@ -98,37 +98,76 @@ def get_entries():
 @app.route('/api/entries', methods=['POST'])
 @login_required
 def add_entry():
-    data = request.json
-    date = datetime.strptime(data['date'], '%Y-%m-%d').date()
-    
-    # Check if entry exists for this date
-    existing_entry = WorkEntry.query.filter_by(
-        user_id=current_user.id,
-        date=date
-    ).first()
-    
-    if existing_entry:
-        return jsonify({'error': 'Date already exists'}), 400
-    
-    start_time = datetime.strptime(data['start'], '%H:%M').time()
-    end_time = datetime.strptime(data['end'], '%H:%M').time()
-    
-    entry = WorkEntry(
-        date=date,
-        day=data['day'],
-        start_time=start_time,
-        end_time=end_time,
-        total_hours=data['totalHours'],
-        overtime_hours=data['overtimeHours'],
-        pay=data['pay'],
-        note=data['note'],
-        user_id=current_user.id
-    )
-    
-    db.session.add(entry)
-    db.session.commit()
-    
-    return jsonify({'message': 'Entry added successfully'})
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'error': 'لم يتم استلام البيانات'}), 400
+
+        # Validate required fields
+        required_fields = ['date', 'day', 'start', 'end', 'totalHours', 'overtimeHours', 'pay']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'حقل {field} مطلوب'}), 400
+
+        # Parse and validate date
+        try:
+            date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'صيغة التاريخ غير صحيحة'}), 400
+
+        # Check if entry exists for this date
+        existing_entry = WorkEntry.query.filter_by(
+            user_id=current_user.id,
+            date=date
+        ).first()
+        
+        if existing_entry:
+            return jsonify({'error': 'يوجد بالفعل تسجيل لهذا التاريخ'}), 400
+
+        # Parse and validate times
+        try:
+            start_time = datetime.strptime(data['start'], '%H:%M').time()
+            end_time = datetime.strptime(data['end'], '%H:%M').time()
+        except ValueError:
+            return jsonify({'error': 'صيغة الوقت غير صحيحة'}), 400
+
+        # Validate time order
+        if end_time <= start_time:
+            return jsonify({'error': 'وقت الانتهاء يجب أن يكون بعد وقت البدء'}), 400
+
+        # Create new entry
+        entry = WorkEntry(
+            date=date,
+            day=data['day'],
+            start_time=start_time,
+            end_time=end_time,
+            total_hours=float(data['totalHours']),
+            overtime_hours=float(data['overtimeHours']),
+            pay=float(data['pay']),
+            note=data.get('note', ''),
+            user_id=current_user.id
+        )
+        
+        db.session.add(entry)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'تمت الإضافة بنجاح',
+            'entry': {
+                'date': entry.date.strftime('%Y-%m-%d'),
+                'day': entry.day,
+                'start': entry.start_time.strftime('%H:%M'),
+                'end': entry.end_time.strftime('%H:%M'),
+                'totalHours': entry.total_hours,
+                'overtimeHours': entry.overtime_hours,
+                'pay': entry.pay,
+                'note': entry.note
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'حدث خطأ أثناء الإضافة'}), 500
 
 @app.route('/api/entries/<date>', methods=['DELETE'])
 @login_required

@@ -2,6 +2,7 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>تسجيل ساعات العمل</title>
   <style>
     body {
@@ -250,26 +251,55 @@
 
     form.addEventListener('submit', function(e) {
       e.preventDefault();
-      const date = getTodayDate();
-      const day = getDayName();
+      
+      // Get form values
       const start = document.getElementById('start').value;
       const end = document.getElementById('end').value;
       const note = document.getElementById('notes').value;
 
+      // Validate inputs
+      if (!start || !end) {
+        alert('الرجاء إدخال وقت البدء ووقت الانتهاء');
+        return;
+      }
+
       const startTime = new Date(`1970-01-01T${start}`);
       const endTime = new Date(`1970-01-01T${end}`);
+      
+      // Validate time order
+      if (endTime <= startTime) {
+        alert('وقت الانتهاء يجب أن يكون بعد وقت البدء');
+        return;
+      }
+
       const diff = (endTime - startTime) / (1000 * 60 * 60);
       const totalHours = Math.max(diff, 0);
       const overtimeHours = Math.max(0, totalHours - 8);
       const overtimeRate = HOURLY_RATE * OVERTIME_MULTIPLIER;
       const pay = (Math.min(totalHours, 8) * HOURLY_RATE) + (overtimeHours * overtimeRate);
 
-      const entry = { date, day, start, end, totalHours, overtimeHours, pay, note };
+      const entry = {
+        date: getTodayDate(),
+        day: getDayName(),
+        start: start,
+        end: end,
+        totalHours: totalHours,
+        overtimeHours: overtimeHours,
+        pay: pay,
+        note: note
+      };
+
+      // Show loading state
+      const submitButton = form.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton.textContent;
+      submitButton.disabled = true;
+      submitButton.textContent = 'جاري الإضافة...';
 
       fetch('/api/entries', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
         },
         body: JSON.stringify(entry)
       })
@@ -283,6 +313,16 @@
         renderEntries(entries);
         updateSummary();
         form.reset();
+        alert('تمت الإضافة بنجاح');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء الإضافة. الرجاء المحاولة مرة أخرى');
+      })
+      .finally(() => {
+        // Reset button state
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
       });
     });
 
