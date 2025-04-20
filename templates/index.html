@@ -3,223 +3,508 @@
 <head>
   <meta charset="UTF-8">
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تسجيل ساعات العمل</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
+    :root {
+      --primary-color: #2c3e50;
+      --primary-hover: #34495e;
+      --accent-color: #e74c3c;
+      --accent-hover: #c0392b;
+      --success-color: #27ae60;
+      --success-hover: #219a52;
+      --background-color: #ecf0f1;
+      --card-background: #ffffff;
+      --text-color: #2c3e50;
+      --border-radius: 15px;
+      --box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: 'Cairo', sans-serif;
       direction: rtl;
-      background: linear-gradient(to right, #f0f4f8, #e0ecf4);
+      background: var(--background-color);
+      min-height: 100vh;
+      color: var(--text-color);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
       padding: 20px;
-      margin: 0;
-    }
-    h1 {
-      text-align: center;
-      color: #1e3a5f;
-      margin-bottom: 30px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      margin: 20px auto;
-      max-width: 900px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-
-    label {
-      display: block;
-      margin: 10px 0 5px;
-      font-weight: bold;
-      color: #333;
-    }
-
-    input, button {
-      padding: 10px;
-      margin-bottom: 15px;
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-
-    button {
-      background-color: #1e3a5f;
-      color: white;
-      border: none;
-      transition: background-color 0.3s ease;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #355d8c;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      font-size: 14px;
-    }
-
-    th, td {
-      padding: 12px 8px;
-      border-bottom: 1px solid #ccc;
-      text-align: center;
-    }
-
-    th {
-      background: #1e3a5f;
-      color: white;
-    }
-
-    .summary {
-      font-weight: bold;
-      text-align: center;
-      color: #1e3a5f;
-      font-size: 18px;
-      margin-top: 10px;
-    }
-
-    .section-title {
-      margin-bottom: 10px;
-      font-size: 20px;
-      color: #1e3a5f;
-      border-bottom: 2px solid #1e3a5f;
-      display: inline-block;
-      padding-bottom: 5px;
     }
 
     .header {
+      background: var(--primary-color);
+      color: white;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+    }
+
+    .header-content {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      padding: 10px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      flex-wrap: wrap;
+      gap: 20px;
     }
 
     .user-info {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 15px;
     }
 
     .user-name {
-      font-weight: bold;
-      color: #1e3a5f;
+      font-size: 1.2rem;
+      font-weight: 600;
     }
 
     .header-buttons {
       display: flex;
-      gap: 10px;
+      gap: 15px;
     }
 
     .header-button {
-      padding: 8px 15px;
-      background-color: #1e3a5f;
+      padding: 10px 20px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-success {
+      background: var(--success-color);
       color: white;
+    }
+
+    .btn-danger {
+      background: var(--accent-color);
+      color: white;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: var(--card-background);
+      border-radius: var(--border-radius);
+      padding: 25px;
+      box-shadow: var(--box-shadow);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+
+    .section-title {
+      color: var(--primary-color);
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 25px;
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 50px;
+      height: 3px;
+      background: var(--accent-color);
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      background: white;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
-      font-size: 14px;
-      transition: background-color 0.3s ease;
+      transition: all 0.3s ease;
     }
 
-    .header-button:hover {
-      background-color: #355d8c;
+    .btn-primary {
+      background: var(--accent-color);
+      color: white;
     }
 
-    .switch-account {
-      background-color: #2e7d32;
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
     }
 
-    .switch-account:hover {
-      background-color: #388e3c;
+    .summary-card {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+      color: white;
+      padding: 20px;
+      border-radius: var(--border-radius);
+      margin-bottom: 20px;
     }
 
-    .logout {
-      background-color: #c62828;
+    .summary-title {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      opacity: 0.9;
     }
 
-    .logout:hover {
-      background-color: #d32f2f;
+    .summary-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      margin-top: 20px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th {
+      background: var(--primary-color);
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 12px 15px;
+      text-align: center;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .action-group {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: var(--border-radius);
+      transition: all 0.3s ease;
+    }
+
+    .action-group:hover {
+      background: white;
+      box-shadow: var(--box-shadow);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 15px 25px;
+      border-radius: 10px;
+      color: white;
+      font-weight: 600;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+      box-shadow: var(--box-shadow);
+    }
+
+    .toast.success {
+      background: var(--success-color);
+    }
+
+    .toast.error {
+      background: var(--accent-color);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(-10px);
+    }
+
+    .action-icon {
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      color: var(--text-color);
+    }
+
+    .edit-icon {
+      color: var(--primary-color);
+    }
+
+    .edit-icon:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .delete-icon {
+      color: var(--accent-color);
+    }
+
+    .delete-icon:hover {
+      background: var(--accent-color);
+      color: white;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--text-color);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .modal-button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: none;
+      width: auto;
+    }
+
+    .confirm-button {
+      background: var(--accent-color);
+      color: white;
+    }
+
+    .confirm-button:hover {
+      background: var(--accent-hover);
+    }
+
+    .cancel-button {
+      background: #e0e0e0;
+      color: var(--text-color);
+    }
+
+    .cancel-button:hover {
+      background: #d0d0d0;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+
+      .header-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .header-buttons {
+        justify-content: center;
+      }
+
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .table-container {
+        margin: 0 -15px;
+        border-radius: 0;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <header class="header">
+      <div class="header-content">
+        <div class="user-info">
+          <i class="fas fa-user"></i>
+          <span class="user-name">{{ current_user.username }}</span>
+        </div>
+        <div class="header-buttons">
+          <a href="/export" class="header-button btn-success">
+            <i class="fas fa-file-excel"></i>
+            تحميل جدول البيانات
+          </a>
+          <a href="{{ url_for('login') }}" class="header-button btn-success">تبديل الحساب</a>
+          <a href="{{ url_for('logout') }}" class="header-button btn-danger">
+            <i class="fas fa-sign-out-alt"></i>
+            تسجيل الخروج
+          </a>
+        </div>
+      </div>
+    </header>
 
-  <div class="header">
-    <div class="user-info">
-      <span class="user-name">مرحباً، {{ current_user.username }}</span>
+    <div class="main-grid">
+      <div class="card">
+        <div class="section-title">إضافة الساعات</div>
+        <form id="workForm">
+          <div class="form-group">
+            <label for="start">وقت البدء:</label>
+            <input type="time" id="start" required step="1">
+          </div>
+
+          <div class="form-group">
+            <label for="end">وقت الانتهاء:</label>
+            <input type="time" id="end" required step="1">
+          </div>
+
+          <div class="form-group">
+            <label for="notes">ملاحظات:</label>
+            <input type="text" id="notes" placeholder="مثلاً: عمل إضافي">
+          </div>
+
+          <button type="submit" class="btn-primary">إضافة</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="section-title">ملخص الساعات</div>
+        <div class="summary-card">
+          <div class="summary-title">الساعات الإضافية</div>
+          <div class="summary-value" id="overtimeSummary"></div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-title">مجموع الراتب</div>
+          <div class="summary-value" id="totalSalarySummary"></div>
+        </div>
+      </div>
     </div>
-    <div class="header-buttons">
-      <a href="{{ url_for('login') }}" class="header-button switch-account">تبديل الحساب</a>
-      <a href="{{ url_for('logout') }}" class="header-button logout">تسجيل الخروج</a>
+
+    <div class="card">
+      <div class="section-title">السجل الكامل</div>
+      <div class="table-container">
+        <table id="entriesTable">
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>اليوم</th>
+              <th>وقت البدء</th>
+              <th>وقت الانتهاء</th>
+              <th>عدد الساعات</th>
+              <th>الساعات الإضافية</th>
+              <th>قيمة الساعة الإضافية</th>
+              <th>الدفع الكلي</th>
+              <th>مجموع الراتب</th>
+              <th>ملاحظات</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">إجراءات</div>
+      <div class="actions-grid">
+        <div class="action-group">
+          <label>ابحث بالتاريخ:</label>
+          <input type="date" id="searchDate">
+          <button onclick="searchEntries()" class="btn-primary">بحث</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <h1>نظام تسجيل ساعات العمل</h1>
-
-  <div class="card">
-    <div class="section-title">إضافة الساعات</div>
-    <form id="workForm">
-      <label for="start">وقت البدء:</label>
-      <input type="time" id="start" required>
-
-      <label for="end">وقت الانتهاء:</label>
-      <input type="time" id="end" required>
-
-      <label for="notes">ملاحظات:</label>
-      <input type="text" id="notes" placeholder="مثلاً: عمل إضافي">
-
-      <button type="submit">إضافة</button>
-    </form>
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">تأكيد الحذف</div>
+      <p>هل أنت متأكد من حذف هذا السجل؟</p>
+      <div class="modal-buttons">
+        <button class="modal-button confirm-button" onclick="confirmDelete()">نعم، احذف</button>
+        <button class="modal-button cancel-button" onclick="closeDeleteModal()">إلغاء</button>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="section-title">ملخص الساعات الإضافية</div>
-    <div class="summary" id="overtimeSummary"></div>
-    <div class="summary" id="totalSalarySummary"></div>
-  </div>
-
-  <div class="card">
-    <div class="section-title">السجل الكامل</div>
-    <table id="entriesTable">
-      <thead>
-        <tr>
-          <th>التاريخ</th>
-          <th>اليوم</th>
-          <th>وقت البدء</th>
-          <th>وقت الانتهاء</th>
-          <th>عدد الساعات</th>
-          <th>الساعات الإضافية</th>
-          <th>قيمة الساعة الإضافية</th>
-          <th>الدفع الكلي</th>
-          <th>مجموع الراتب</th>
-          <th>ملاحظات</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <div class="card">
-    <div class="section-title">إجراءات</div>
-
-    <label>ابحث بالتاريخ:</label>
-    <input type="date" id="searchDate">
-    <button onclick="searchEntries()">بحث</button>
-
-    <label>احذف بالتاريخ:</label>
-    <input type="date" id="deleteDate">
-    <button onclick="deleteEntry()">حذف</button>
-
-    <button onclick="downloadExcel()">تحميل Excel</button>
-  </div>
+  <div id="toast" class="toast"></div>
 
   <script>
     const HOURLY_RATE = 14;
@@ -249,6 +534,17 @@
       return days[new Date().getDay()];
     };
 
+    // Add toast notification function
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => {
+        toast.className = 'toast';
+      }, 3000);
+    }
+
+    // Update form submission to use toast
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       
@@ -259,7 +555,7 @@
 
       // Validate inputs
       if (!start || !end) {
-        alert('الرجاء إدخال وقت البدء ووقت الانتهاء');
+        showToast('الرجاء إدخال وقت البدء ووقت الانتهاء', 'error');
         return;
       }
 
@@ -268,7 +564,7 @@
       
       // Validate time order
       if (endTime <= startTime) {
-        alert('وقت الانتهاء يجب أن يكون بعد وقت البدء');
+        showToast('وقت الانتهاء يجب أن يكون بعد وقت البدء', 'error');
         return;
       }
 
@@ -306,18 +602,18 @@
       .then(response => response.json())
       .then(data => {
         if (data.error) {
-          alert(data.error);
+          showToast(data.error, 'error');
           return;
         }
         entries.push(entry);
         renderEntries(entries);
         updateSummary();
         form.reset();
-        alert('تمت الإضافة بنجاح');
+        showToast('تمت الإضافة بنجاح');
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('حدث خطأ أثناء الإضافة. الرجاء المحاولة مرة أخرى');
+        showToast('حدث خطأ أثناء الإضافة. الرجاء المحاولة مرة أخرى', 'error');
       })
       .finally(() => {
         // Reset button state
@@ -326,6 +622,54 @@
       });
     });
 
+    let deleteEntryDate = null;
+
+    function showDeleteModal(date) {
+      deleteEntryDate = date;
+      document.getElementById('deleteModal').classList.add('show');
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').classList.remove('show');
+      deleteEntryDate = null;
+    }
+
+    function confirmDelete() {
+      if (!deleteEntryDate) return;
+      
+      const deleteButton = document.querySelector('.confirm-button');
+      deleteButton.disabled = true;
+      deleteButton.textContent = 'جاري الحذف...';
+      
+      fetch(`/api/entries/${deleteEntryDate}`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          showToast(data.error, 'error');
+          return;
+        }
+        
+        entries = entries.filter(e => e.date !== deleteEntryDate);
+        renderEntries(entries);
+        updateSummary();
+        showToast('تم الحذف بنجاح');
+        closeDeleteModal();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('حدث خطأ أثناء الحذف', 'error');
+      })
+      .finally(() => {
+        deleteButton.disabled = false;
+        deleteButton.textContent = 'نعم، احذف';
+      });
+    }
+
     function renderEntries(list) {
       tableBody.innerHTML = '';
       list.forEach(e => {
@@ -333,17 +677,27 @@
         row.innerHTML = `
           <td>${e.date}</td>
           <td>${e.day}</td>
-          <td>${e.start}</td>
-          <td>${e.end}</td>
+          <td>${formatTime(e.start)}</td>
+          <td>${formatTime(e.end)}</td>
           <td>${e.totalHours.toFixed(2)}</td>
           <td>${e.overtimeHours.toFixed(2)}</td>
           <td>${(HOURLY_RATE * OVERTIME_MULTIPLIER).toFixed(2)} ₪</td>
           <td>${e.pay.toFixed(2)} ₪</td>
           <td>${e.pay.toFixed(2)} ₪</td>
           <td>${e.note}</td>
+          <td>
+            <i class="fas fa-edit action-icon edit-icon" title="تعديل" onclick="editEntry('${e.date}')"></i>
+            <i class="fas fa-trash-alt action-icon delete-icon" title="حذف" onclick="showDeleteModal('${e.date}')"></i>
+          </td>
         `;
         tableBody.appendChild(row);
       });
+    }
+
+    // إضافة دالة لتنسيق الوقت بنظام 24 ساعة
+    function formatTime(time) {
+      if (!time) return '';
+      return time;
     }
 
     function updateSummary() {
@@ -361,32 +715,68 @@
         .then(response => response.json())
         .then(filtered => {
           if (filtered.length === 0) {
-            alert("لا توجد نتائج.");
+            showToast("لا توجد نتائج.", 'error');
             return;
           }
           renderEntries(filtered);
+          showToast('تم عرض النتائج بنجاح');
         });
     }
 
-    function deleteEntry() {
-      const date = document.getElementById('deleteDate').value;
-      if (!confirm(`هل تريد حذف البيانات ليوم ${date}؟`)) return;
-      
+    function editEntry(date) {
+      const entry = entries.find(e => e.date === date);
+      if (!entry) {
+        showToast('لم يتم العثور على السجل', 'error');
+        return;
+      }
+
+      // تحديث حقول النموذج بالقيم الحالية
+      document.getElementById('start').value = entry.start;
+      document.getElementById('end').value = entry.end;
+      document.getElementById('notes').value = entry.note;
+
+      // تعطيل زر الإضافة مؤقتاً
+      const submitButton = form.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+      submitButton.textContent = 'جاري التحديث...';
+
+      // إرسال طلب التحديث
       fetch(`/api/entries/${date}`, {
-        method: 'DELETE'
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify(entry)
       })
       .then(response => response.json())
-      .then(() => {
-        entries = entries.filter(e => e.date !== date);
+      .then(data => {
+        if (data.error) {
+          showToast(data.error, 'error');
+          return;
+        }
+        
+        // تحديث القائمة المحلية
+        const index = entries.findIndex(e => e.date === date);
+        if (index !== -1) {
+          entries[index] = entry;
+        }
+        
         renderEntries(entries);
         updateSummary();
+        form.reset();
+        showToast('تم التحديث بنجاح');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('حدث خطأ أثناء التحديث', 'error');
+      })
+      .finally(() => {
+        // إعادة تفعيل زر الإضافة
+        submitButton.disabled = false;
+        submitButton.textContent = 'إضافة';
       });
     }
-
-    function downloadExcel() {
-      window.location.href = '/api/export';
-    }
   </script>
-
 </body>
 </html> 
