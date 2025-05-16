@@ -1029,6 +1029,57 @@
 
     let excelData = null;
 
+    function processExcelData(data) {
+      return data.map(row => {
+        // الحصول على الأعمدة الأربعة الأولى فقط
+        const requiredColumns = ['التاريخ', 'اليوم', 'ساعه الدخول', 'ساعه الخروج'];
+        const firstFourColumns = Object.keys(row).slice(0, 4);
+        
+        // إنشاء كائن جديد يحتوي على البيانات المطلوبة فقط
+        const processedRow = {};
+        firstFourColumns.forEach((col, index) => {
+          processedRow[requiredColumns[index]] = row[col];
+        });
+
+        // تحويل التاريخ إلى الصيغة المطلوبة (YYYY-MM-DD)
+        const date = new Date(processedRow['التاريخ']);
+        const formattedDate = date.toISOString().split('T')[0];
+        
+        // تحويل الأوقات إلى الصيغة المطلوبة (HH:mm)
+        const startTime = formatExcelTime(processedRow['ساعه الدخول']);
+        const endTime = formatExcelTime(processedRow['ساعه الخروج']);
+        
+        // حساب الساعات
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const [endHour, endMinute] = endTime.split(':').map(Number);
+        
+        const startTotalMinutes = startHour * 60 + startMinute;
+        const endTotalMinutes = endHour * 60 + endMinute;
+        
+        let totalHours;
+        if (endTotalMinutes < startTotalMinutes) {
+          totalHours = (24 * 60 - startTotalMinutes + endTotalMinutes) / 60;
+        } else {
+          totalHours = (endTotalMinutes - startTotalMinutes) / 60;
+        }
+
+        const overtimeHours = Math.max(0, totalHours - 8);
+        const overtimeRate = HOURLY_RATE * OVERTIME_MULTIPLIER;
+        const pay = (Math.min(totalHours, 8) * HOURLY_RATE) + (overtimeHours * overtimeRate);
+
+        return {
+          date: formattedDate,
+          day: processedRow['اليوم'],
+          start: startTime,
+          end: endTime,
+          totalHours: totalHours,
+          overtimeHours: overtimeHours,
+          pay: pay,
+          note: ''
+        };
+      });
+    }
+
     async function previewExcelData() {
       const fileInput = document.getElementById('excelFile');
       const file = fileInput.files[0];
@@ -1043,6 +1094,23 @@
 
       try {
         const data = await readExcelFile(file);
+        
+        // التحقق من وجود الأعمدة المطلوبة
+        if (data.length > 0) {
+          const firstRow = data[0];
+          const columns = Object.keys(firstRow);
+          
+          if (columns.length < 4) {
+            showToast('الملف يجب أن يحتوي على 4 أعمدة على الأقل', 'error');
+            return;
+          }
+          
+          // إظهار تنبيه إذا كان هناك أعمدة إضافية
+          if (columns.length > 4) {
+            showToast('سيتم استخدام الأعمدة الأربعة الأولى فقط', 'info');
+          }
+        }
+        
         excelData = processExcelData(data);
         
         // عرض البيانات في الجدول
@@ -1138,47 +1206,6 @@
         
         reader.onerror = reject;
         reader.readAsArrayBuffer(file);
-      });
-    }
-
-    function processExcelData(data) {
-      return data.map(row => {
-        // تحويل التاريخ إلى الصيغة المطلوبة (YYYY-MM-DD)
-        const date = new Date(row['التاريخ']);
-        const formattedDate = date.toISOString().split('T')[0];
-        
-        // تحويل الأوقات إلى الصيغة المطلوبة (HH:mm)
-        const startTime = formatExcelTime(row['ساعه الدخول']);
-        const endTime = formatExcelTime(row['ساعه الخروج']);
-        
-        // حساب الساعات
-        const [startHour, startMinute] = startTime.split(':').map(Number);
-        const [endHour, endMinute] = endTime.split(':').map(Number);
-        
-        const startTotalMinutes = startHour * 60 + startMinute;
-        const endTotalMinutes = endHour * 60 + endMinute;
-        
-        let totalHours;
-        if (endTotalMinutes < startTotalMinutes) {
-          totalHours = (24 * 60 - startTotalMinutes + endTotalMinutes) / 60;
-        } else {
-          totalHours = (endTotalMinutes - startTotalMinutes) / 60;
-        }
-
-        const overtimeHours = Math.max(0, totalHours - 8);
-        const overtimeRate = HOURLY_RATE * OVERTIME_MULTIPLIER;
-        const pay = (Math.min(totalHours, 8) * HOURLY_RATE) + (overtimeHours * overtimeRate);
-
-        return {
-          date: formattedDate,
-          day: row['اليوم'],
-          start: startTime,
-          end: endTime,
-          totalHours: totalHours,
-          overtimeHours: overtimeHours,
-          pay: pay,
-          note: ''
-        };
       });
     }
 
