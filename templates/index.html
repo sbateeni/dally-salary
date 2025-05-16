@@ -535,6 +535,27 @@
           <div class="summary-value" id="totalSalarySummary"></div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="section-title">استيراد من ملف Excel</div>
+        <div class="form-group">
+          <label for="excelFile">اختر ملف Excel:</label>
+          <input type="file" id="excelFile" accept=".xlsx, .xls" style="margin-bottom: 10px;">
+          <button onclick="importExcel()" class="btn-primary">
+            <i class="fas fa-file-excel"></i>
+            استيراد البيانات
+          </button>
+        </div>
+        <div style="margin-top: 15px; font-size: 0.9em; color: #666;">
+          <p>ملاحظة: يجب أن يحتوي ملف Excel على الأعمدة التالية:</p>
+          <ul style="list-style: none; padding-right: 20px;">
+            <li>• التاريخ</li>
+            <li>• اليوم</li>
+            <li>• ساعه الدخول</li>
+            <li>• ساعه الخروج</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -592,11 +613,6 @@
           <label>ابحث بالتاريخ:</label>
           <input type="date" id="searchDate">
           <button onclick="searchEntries()" class="btn-primary">بحث</button>
-        </div>
-        <div class="action-group">
-          <label>استيراد من ملف Excel:</label>
-          <input type="file" id="excelFile" accept=".xlsx, .xls" style="margin-bottom: 10px;">
-          <button onclick="importExcel()" class="btn-primary">استيراد</button>
         </div>
       </div>
     </div>
