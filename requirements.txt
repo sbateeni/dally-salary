@@ -4,4 +4,9 @@ Flask-SQLAlchemy==3.1.1
 Flask-Login==0.6.3
 Flask-WTF==1.2.1    
 openpyxl==3.1.2
+streamlit==1.32.0
+pandas==2.2.1
+plotly==5.19.0
+arabic-reshaper==3.0.0
+python-bidi==0.4.2
 

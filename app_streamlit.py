@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import arabic_reshaper
 from bidi.algorithm import get_display
 import json
+import os
 
 # إعدادات الصفحة
 st.set_page_config(
@@ -55,60 +56,82 @@ def calculate_pay(total_hours):
 
 # دالة لتحميل البيانات من قاعدة البيانات
 def load_data():
-    conn = sqlite3.connect('work_hours.db')
-    df = pd.read_sql_query("SELECT * FROM entries", conn)
-    conn.close()
-    return df
+    try:
+        conn = sqlite3.connect('work_hours.db')
+        df = pd.read_sql_query("SELECT * FROM entries", conn)
+        conn.close()
+        return df
+    except Exception as e:
+        st.error(f"خطأ في تحميل البيانات: {str(e)}")
+        return pd.DataFrame()
 
 # دالة لحفظ البيانات في قاعدة البيانات
 def save_entry(date, day, start, end, total_hours, overtime_hours, pay, note):
-    conn = sqlite3.connect('work_hours.db')
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO entries (date, day, start, end, total_hours, overtime_hours, pay, note)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (date, day, start, end, total_hours, overtime_hours, pay, note))
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('work_hours.db')
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO entries (date, day, start, end, total_hours, overtime_hours, pay, note)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (date, day, start, end, total_hours, overtime_hours, pay, note))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"خطأ في حفظ البيانات: {str(e)}")
+        return False
 
 # دالة لحذف سجل
 def delete_entry(date):
-    conn = sqlite3.connect('work_hours.db')
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM entries WHERE date = ?", (date,))
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('work_hours.db')
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM entries WHERE date = ?", (date,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"خطأ في حذف السجل: {str(e)}")
+        return False
 
 # دالة لتحديث سجل
 def update_entry(date, day, start, end, total_hours, overtime_hours, pay, note):
-    conn = sqlite3.connect('work_hours.db')
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE entries 
-        SET day = ?, start = ?, end = ?, total_hours = ?, overtime_hours = ?, pay = ?, note = ?
-        WHERE date = ?
-    """, (day, start, end, total_hours, overtime_hours, pay, note, date))
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('work_hours.db')
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE entries 
+            SET day = ?, start = ?, end = ?, total_hours = ?, overtime_hours = ?, pay = ?, note = ?
+            WHERE date = ?
+        """, (day, start, end, total_hours, overtime_hours, pay, note, date))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"خطأ في تحديث السجل: {str(e)}")
+        return False
 
 # إنشاء قاعدة البيانات إذا لم تكن موجودة
 def init_db():
-    conn = sqlite3.connect('work_hours.db')
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS entries (
-            date TEXT PRIMARY KEY,
-            day TEXT,
-            start TEXT,
-            end TEXT,
-            total_hours REAL,
-            overtime_hours REAL,
-            pay REAL,
-            note TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('work_hours.db')
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS entries (
+                date TEXT PRIMARY KEY,
+                day TEXT,
+                start TEXT,
+                end TEXT,
+                total_hours REAL,
+                overtime_hours REAL,
+                pay REAL,
+                note TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        st.error(f"خطأ في تهيئة قاعدة البيانات: {str(e)}")
 
 # تهيئة قاعدة البيانات
 init_db()
@@ -147,7 +170,7 @@ with st.sidebar:
         end_time = f"{end_hour:02d}:{end_minute:02d}"
         
         # حفظ البيانات
-        save_entry(
+        if save_entry(
             work_date.strftime('%Y-%m-%d'),
             day_name,
             start_time,
@@ -156,8 +179,9 @@ with st.sidebar:
             overtime_hours,
             pay,
             note
-        )
-        st.success(format_arabic("تمت إضافة الساعات بنجاح"))
+        ):
+            st.success(format_arabic("تمت إضافة الساعات بنجاح"))
+            st.experimental_rerun()
 
 # عرض البيانات
 df = load_data()
@@ -187,14 +211,14 @@ if not df.empty:
                   title=format_arabic("الساعات اليومية"),
                   labels={'date': format_arabic("التاريخ"), 
                          'total_hours': format_arabic("عدد الساعات")})
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
     
     # رسم بياني للرواتب
     fig2 = px.bar(df, x='date', y='pay',
                   title=format_arabic("الرواتب اليومية"),
                   labels={'date': format_arabic("التاريخ"),
                          'pay': format_arabic("الراتب")})
-    st.plotly_chart(fig2)
+    st.plotly_chart(fig2, use_container_width=True)
     
     # عرض الجدول
     st.subheader(format_arabic("سجل الساعات"))
@@ -217,8 +241,8 @@ if not df.empty:
         
         with col3:
             if st.button(format_arabic("حذف"), key=f"delete_{idx}"):
-                delete_entry(row['date'].strftime('%Y-%m-%d'))
-                st.experimental_rerun()
+                if delete_entry(row['date'].strftime('%Y-%m-%d')):
+                    st.experimental_rerun()
         
         st.divider()
 
@@ -257,7 +281,7 @@ if 'editing' in st.session_state:
             end_time = f"{edit_end_hour:02d}:{edit_end_minute:02d}"
             
             # تحديث البيانات
-            update_entry(
+            if update_entry(
                 edit_date.strftime('%Y-%m-%d'),
                 day_name,
                 start_time,
@@ -266,9 +290,9 @@ if 'editing' in st.session_state:
                 overtime_hours,
                 pay,
                 edit_note
-            )
-            del st.session_state['editing']
-            st.experimental_rerun()
+            ):
+                del st.session_state['editing']
+                st.experimental_rerun()
     
     with col2:
         if st.button(format_arabic("إلغاء")):
