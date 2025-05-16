@@ -13,6 +13,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 import calendar
 import locale
+import pandas as pd
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
@@ -63,7 +64,8 @@ def load_user(user_id):
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html')
+    entries = WorkEntry.query.filter_by(user_id=current_user.id).order_by(WorkEntry.date.desc()).all()
+    return render_template('index.html', entries=entries, days=DAYS)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
