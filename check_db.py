@@ -6,16 +6,11 @@ def check_and_fix_database():
         conn = sqlite3.connect('work_hours.db')
         cursor = conn.cursor()
 
-        # Get table info
-        cursor.execute("PRAGMA table_info(work_entry)")
-        columns = cursor.fetchall()
-        print("Current table structure:")
-        for col in columns:
-            print(col)
-
-        # Drop and recreate the table with correct structure
+        # Drop existing tables
         cursor.execute('DROP TABLE IF EXISTS work_entry')
+        cursor.execute('DROP TABLE IF EXISTS user')
         
+        # Create work_entry table
         cursor.execute('''
         CREATE TABLE work_entry (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,10 +21,8 @@ def check_and_fix_database():
             total_hours FLOAT NOT NULL,
             pay FLOAT NOT NULL,
             note VARCHAR(200),
-            user_id INTEGER NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            overtime_hours FLOAT DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES user (id)
+            overtime_hours FLOAT DEFAULT 0
         )
         ''')
 

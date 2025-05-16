@@ -13,19 +13,11 @@
     <div class="container">
         <header class="header">
             <div class="header-content">
-                <div class="user-info">
-                    <i class="fas fa-user"></i>
-                    <span class="user-name">{{ current_user.username }}</span>
-                </div>
+                <h1>نظام تسجيل ساعات العمل</h1>
                 <div class="header-buttons">
                     <a href="/export" class="header-button btn-success">
                         <i class="fas fa-file-excel"></i>
                         تحميل جدول البيانات
-                    </a>
-                    <a href="{{ url_for('login') }}" class="header-button btn-success">تبديل الحساب</a>
-                    <a href="{{ url_for('logout') }}" class="header-button btn-danger">
-                        <i class="fas fa-sign-out-alt"></i>
-                        تسجيل الخروج
                     </a>
                 </div>
             </div>
