@@ -19,6 +19,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///work_hours.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_SECRET_KEY'] = os.environ.get('WTF_CSRF_SECRET_KEY', 'your-csrf-secret-key-here')
 
 db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
@@ -54,6 +56,8 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 class WorkEntry(db.Model):
+    __tablename__ = 'work_entry'
+    
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
     day = db.Column(db.String(20), nullable=False)
@@ -64,9 +68,13 @@ class WorkEntry(db.Model):
     note = db.Column(db.String(200))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    overtime_hours = db.Column(db.Float, default=0)
 
     def calculate_pay(self):
         return self.total_hours * HOURLY_RATE
+
+    def __repr__(self):
+        return f'<WorkEntry {self.date} {self.start_time}-{self.end_time}>'
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -76,8 +84,14 @@ def load_user(user_id):
 @app.route('/')
 @login_required
 def index():
-    entries = WorkEntry.query.filter_by(user_id=current_user.id).order_by(WorkEntry.date.desc()).all()
-    return render_template('index.html', entries=entries, days=DAYS)
+    try:
+        entries = WorkEntry.query.filter_by(user_id=current_user.id).order_by(WorkEntry.date.desc()).all()
+        print(f"Found {len(entries)} entries for user {current_user.id}")  # Debug log
+        return render_template('index.html', entries=entries, days=DAYS)
+    except Exception as e:
+        print(f"Error loading entries: {str(e)}")  # Debug log
+        flash('حدث خطأ أثناء تحميل البيانات', 'error')
+        return render_template('index.html', entries=[], days=DAYS)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -117,21 +131,30 @@ def get_entries():
 @login_required
 def add_entry():
     try:
-        data = request.json
+        # Check if the request has JSON content
+        if not request.is_json:
+            print("Request is not JSON")  # Debug log
+            return jsonify({'error': 'يجب أن يكون الطلب بتنسيق JSON'}), 400
+
+        data = request.get_json()
+        print(f"Received data: {data}")  # Debug log
+        
         if not data:
             return jsonify({'error': 'لم يتم استلام البيانات'}), 400
 
         # Validate required fields
         required_fields = ['date', 'day', 'start', 'end', 'totalHours', 'pay']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'حقل {field} مطلوب'}), 400
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return jsonify({'error': f'الحقول المطلوبة مفقودة: {", ".join(missing_fields)}'}), 400
 
         # Parse and validate date
         try:
             date = datetime.strptime(data['date'], '%Y-%m-%d').date()
-        except ValueError:
-            return jsonify({'error': 'صيغة التاريخ غير صحيحة'}), 400
+            print(f"Parsed date: {date}")  # Debug log
+        except ValueError as e:
+            print(f"Date parsing error: {str(e)}")  # Debug log
+            return jsonify({'error': f'صيغة التاريخ غير صحيحة: {data["date"]}'}), 400
 
         # Check if entry exists for this date
         existing_entry = WorkEntry.query.filter_by(
@@ -140,18 +163,34 @@ def add_entry():
         ).first()
         
         if existing_entry:
-            return jsonify({'error': 'يوجد بالفعل تسجيل لهذا التاريخ'}), 400
+            return jsonify({'error': f'يوجد بالفعل تسجيل لهذا التاريخ: {date}'}), 400
 
         # Parse and validate times
         try:
             start_time = datetime.strptime(data['start'], '%H:%M').time()
             end_time = datetime.strptime(data['end'], '%H:%M').time()
-        except ValueError:
-            return jsonify({'error': 'صيغة الوقت غير صحيحة'}), 400
+            print(f"Parsed times - Start: {start_time}, End: {end_time}")  # Debug log
+        except ValueError as e:
+            print(f"Time parsing error: {str(e)}")  # Debug log
+            return jsonify({'error': f'صيغة الوقت غير صحيحة: {data["start"]} - {data["end"]}'}), 400
 
         # Validate time order
         if end_time <= start_time:
-            return jsonify({'error': 'وقت الانتهاء يجب أن يكون بعد وقت البدء'}), 400
+            return jsonify({'error': f'وقت الانتهاء ({end_time}) يجب أن يكون بعد وقت البدء ({start_time})'}), 400
+
+        # Validate total hours and pay
+        try:
+            total_hours = float(data['totalHours'])
+            pay = float(data['pay'])
+            print(f"Parsed values - Hours: {total_hours}, Pay: {pay}")  # Debug log
+            
+            if total_hours <= 0:
+                return jsonify({'error': f'عدد الساعات ({total_hours}) يجب أن يكون أكبر من صفر'}), 400
+            if pay <= 0:
+                return jsonify({'error': f'الراتب ({pay}) يجب أن يكون أكبر من صفر'}), 400
+        except ValueError as e:
+            print(f"Number parsing error: {str(e)}")  # Debug log
+            return jsonify({'error': 'قيم الساعات والراتب يجب أن تكون أرقاماً صحيحة'}), 400
 
         # Create new entry
         entry = WorkEntry(
@@ -159,14 +198,21 @@ def add_entry():
             day=data['day'],
             start_time=start_time,
             end_time=end_time,
-            total_hours=float(data['totalHours']),
-            pay=float(data['pay']),
+            total_hours=total_hours,
+            pay=pay,
             note=data.get('note', ''),
             user_id=current_user.id
         )
         
-        db.session.add(entry)
-        db.session.commit()
+        try:
+            print(f"Adding entry: {entry}")  # Debug log
+            db.session.add(entry)
+            db.session.commit()
+            print("Entry added successfully")  # Debug log
+        except Exception as db_error:
+            db.session.rollback()
+            print(f"Database error: {str(db_error)}")  # Debug log
+            return jsonify({'error': f'خطأ في قاعدة البيانات: {str(db_error)}'}), 500
         
         return jsonify({
             'message': 'تمت الإضافة بنجاح',
@@ -183,7 +229,8 @@ def add_entry():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'حدث خطأ أثناء الإضافة'}), 500
+        print(f"Unexpected error: {str(e)}")  # Debug log
+        return jsonify({'error': f'حدث خطأ غير متوقع: {str(e)}'}), 500
 
 @app.route('/api/entries/<date>', methods=['DELETE'])
 @login_required
