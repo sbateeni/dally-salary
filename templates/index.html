@@ -540,8 +540,8 @@
         <div class="section-title">استيراد من ملف Excel</div>
         <div class="form-group">
           <label for="excelFile">اختر ملف Excel:</label>
-          <input type="file" id="excelFile" accept=".xlsx, .xls" style="margin-bottom: 10px;">
-          <button onclick="importExcel()" class="btn-primary">
+          <input type="file" id="excelFile" accept=".xlsx, .xls" style="margin-bottom: 10px;" onchange="previewExcelData()">
+          <button onclick="importExcel()" class="btn-primary" id="importButton" style="display: none;">
             <i class="fas fa-file-excel"></i>
             استيراد البيانات
           </button>
@@ -554,6 +554,27 @@
             <li>• ساعه الدخول</li>
             <li>• ساعه الخروج</li>
           </ul>
+        </div>
+        
+        <!-- جدول معاينة بيانات Excel -->
+        <div id="excelPreview" style="display: none; margin-top: 20px;">
+          <h3 style="margin-bottom: 15px;">معاينة البيانات</h3>
+          <div class="table-container">
+            <table id="previewTable">
+              <thead>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>اليوم</th>
+                  <th>وقت البدء</th>
+                  <th>وقت الانتهاء</th>
+                  <th>عدد الساعات</th>
+                  <th>الساعات الإضافية</th>
+                  <th>الراتب</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1006,25 +1027,75 @@
       });
     }
 
-    async function importExcel() {
+    let excelData = null;
+
+    async function previewExcelData() {
       const fileInput = document.getElementById('excelFile');
       const file = fileInput.files[0];
+      const previewDiv = document.getElementById('excelPreview');
+      const importButton = document.getElementById('importButton');
       
       if (!file) {
-        showToast('الرجاء اختيار ملف Excel', 'error');
+        previewDiv.style.display = 'none';
+        importButton.style.display = 'none';
         return;
       }
 
       try {
         const data = await readExcelFile(file);
-        const processedEntries = processExcelData(data);
+        excelData = processExcelData(data);
         
+        // عرض البيانات في الجدول
+        const tbody = document.querySelector('#previewTable tbody');
+        tbody.innerHTML = '';
+        
+        excelData.forEach(entry => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${entry.date}</td>
+            <td>${entry.day}</td>
+            <td>${entry.start}</td>
+            <td>${entry.end}</td>
+            <td>${entry.totalHours.toFixed(2)}</td>
+            <td>${entry.overtimeHours.toFixed(2)}</td>
+            <td>${entry.pay.toFixed(2)} ₪</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        // إظهار قسم المعاينة وزر الاستيراد
+        previewDiv.style.display = 'block';
+        importButton.style.display = 'block';
+        
+        showToast('تم تحميل البيانات بنجاح. يرجى مراجعة البيانات قبل الاستيراد');
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('حدث خطأ أثناء قراءة الملف', 'error');
+        previewDiv.style.display = 'none';
+        importButton.style.display = 'none';
+      }
+    }
+
+    async function importExcel() {
+      if (!excelData) {
+        showToast('الرجاء اختيار ملف Excel أولاً', 'error');
+        return;
+      }
+
+      try {
+        // إظهار حالة التحميل
+        const importButton = document.getElementById('importButton');
+        const originalText = importButton.innerHTML;
+        importButton.disabled = true;
+        importButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
+
         // إرسال كل سجل إلى الخادم
-        for (const entry of processedEntries) {
+        for (const entry of excelData) {
           await addEntry(entry);
         }
         
         showToast('تم استيراد البيانات بنجاح');
+        
         // تحديث العرض
         fetch('/api/entries')
           .then(response => response.json())
@@ -1033,9 +1104,19 @@
             renderEntries(entries);
             updateSummary();
           });
+
+        // إعادة تعيين النموذج
+        document.getElementById('excelFile').value = '';
+        document.getElementById('excelPreview').style.display = 'none';
+        importButton.style.display = 'none';
+        excelData = null;
       } catch (error) {
         console.error('Error:', error);
-        showToast('حدث خطأ أثناء استيراد الملف', 'error');
+        showToast('حدث خطأ أثناء استيراد البيانات', 'error');
+      } finally {
+        // إعادة تفعيل الزر
+        importButton.disabled = false;
+        importButton.innerHTML = originalText;
       }
     }
 
