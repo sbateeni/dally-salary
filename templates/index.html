@@ -463,6 +463,11 @@
         <div class="section-title">إضافة الساعات</div>
         <form id="workForm">
           <div class="form-group">
+            <label for="workDate">التاريخ:</label>
+            <input type="date" id="workDate" required>
+          </div>
+
+          <div class="form-group">
             <label for="start">وقت البدء:</label>
             <div class="time-input">
               <select id="startHour" required>
@@ -588,6 +593,11 @@
           <input type="date" id="searchDate">
           <button onclick="searchEntries()" class="btn-primary">بحث</button>
         </div>
+        <div class="action-group">
+          <label>استيراد من ملف Excel:</label>
+          <input type="file" id="excelFile" accept=".xlsx, .xls" style="margin-bottom: 10px;">
+          <button onclick="importExcel()" class="btn-primary">استيراد</button>
+        </div>
       </div>
     </div>
   </div>
@@ -606,6 +616,7 @@
 
   <div id="toast" class="toast"></div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     const HOURLY_RATE = 14;
     const OVERTIME_MULTIPLIER = 1.5;
@@ -649,7 +660,11 @@
     }
 
     // تعبئة الوقت الحالي عند تحميل الصفحة
-    window.addEventListener('load', setCurrentTime);
+    window.addEventListener('load', () => {
+      setCurrentTime();
+      // تعبئة التاريخ الحالي
+      document.getElementById('workDate').value = getTodayDate();
+    });
 
     // تحديث وقت الانتهاء عند تغيير وقت البدء
     document.getElementById('startHour').addEventListener('change', updateEndTime);
@@ -689,6 +704,7 @@
       e.preventDefault();
       
       // Get form values
+      const workDate = document.getElementById('workDate').value;
       const startHour = parseInt(document.getElementById('startHour').value);
       const startMinute = parseInt(document.getElementById('startMinute').value);
       const endHour = parseInt(document.getElementById('endHour').value);
@@ -696,8 +712,8 @@
       const note = document.getElementById('notes').value;
 
       // Validate inputs
-      if (!startHour.toString() || !startMinute.toString() || !endHour.toString() || !endMinute.toString()) {
-        showToast('الرجاء إدخال وقت البدء ووقت الانتهاء بشكل كامل', 'error');
+      if (!workDate || !startHour.toString() || !startMinute.toString() || !endHour.toString() || !endMinute.toString()) {
+        showToast('الرجاء إدخال جميع البيانات المطلوبة', 'error');
         return;
       }
 
@@ -714,13 +730,9 @@
       // حساب الفرق بين الأوقات
       if (endTotalMinutes < startTotalMinutes) {
         // إذا كان وقت الانتهاء أقل من وقت البدء، نفترض أنه في اليوم التالي
-        // مثال: من 19:00 إلى 04:00 في اليوم التالي
-        // (24 * 60 - 19 * 60) + (4 * 60) = 5 * 60 + 4 * 60 = 9 * 60 دقيقة = 9 ساعات
         totalHours = (24 * 60 - startTotalMinutes + endTotalMinutes) / 60;
       } else {
         // إذا كان في نفس اليوم
-        // مثال: من 08:00 إلى 16:00
-        // (16 * 60 - 8 * 60) = 8 * 60 دقيقة = 8 ساعات
         totalHours = (endTotalMinutes - startTotalMinutes) / 60;
       }
 
@@ -734,9 +746,14 @@
       const overtimeRate = HOURLY_RATE * OVERTIME_MULTIPLIER;
       const pay = (Math.min(totalHours, 8) * HOURLY_RATE) + (overtimeHours * overtimeRate);
 
+      // الحصول على اسم اليوم من التاريخ المدخل
+      const date = new Date(workDate);
+      const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+      const dayName = days[date.getDay()];
+
       const entry = {
-        date: getTodayDate(),
-        day: getDayName(),
+        date: workDate,
+        day: dayName,
         start: start,
         end: end,
         totalHours: totalHours,
@@ -971,6 +988,127 @@
         submitButton.disabled = false;
         submitButton.textContent = 'إضافة';
       });
+    }
+
+    async function importExcel() {
+      const fileInput = document.getElementById('excelFile');
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        showToast('الرجاء اختيار ملف Excel', 'error');
+        return;
+      }
+
+      try {
+        const data = await readExcelFile(file);
+        const processedEntries = processExcelData(data);
+        
+        // إرسال كل سجل إلى الخادم
+        for (const entry of processedEntries) {
+          await addEntry(entry);
+        }
+        
+        showToast('تم استيراد البيانات بنجاح');
+        // تحديث العرض
+        fetch('/api/entries')
+          .then(response => response.json())
+          .then(data => {
+            entries = data;
+            renderEntries(entries);
+            updateSummary();
+          });
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('حدث خطأ أثناء استيراد الملف', 'error');
+      }
+    }
+
+    function readExcelFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+            resolve(jsonData);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function processExcelData(data) {
+      return data.map(row => {
+        // تحويل التاريخ إلى الصيغة المطلوبة (YYYY-MM-DD)
+        const date = new Date(row['التاريخ']);
+        const formattedDate = date.toISOString().split('T')[0];
+        
+        // تحويل الأوقات إلى الصيغة المطلوبة (HH:mm)
+        const startTime = formatExcelTime(row['ساعه الدخول']);
+        const endTime = formatExcelTime(row['ساعه الخروج']);
+        
+        // حساب الساعات
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const [endHour, endMinute] = endTime.split(':').map(Number);
+        
+        const startTotalMinutes = startHour * 60 + startMinute;
+        const endTotalMinutes = endHour * 60 + endMinute;
+        
+        let totalHours;
+        if (endTotalMinutes < startTotalMinutes) {
+          totalHours = (24 * 60 - startTotalMinutes + endTotalMinutes) / 60;
+        } else {
+          totalHours = (endTotalMinutes - startTotalMinutes) / 60;
+        }
+
+        const overtimeHours = Math.max(0, totalHours - 8);
+        const overtimeRate = HOURLY_RATE * OVERTIME_MULTIPLIER;
+        const pay = (Math.min(totalHours, 8) * HOURLY_RATE) + (overtimeHours * overtimeRate);
+
+        return {
+          date: formattedDate,
+          day: row['اليوم'],
+          start: startTime,
+          end: endTime,
+          totalHours: totalHours,
+          overtimeHours: overtimeHours,
+          pay: pay,
+          note: ''
+        };
+      });
+    }
+
+    function formatExcelTime(time) {
+      // تحويل الوقت من Excel إلى الصيغة المطلوبة
+      if (typeof time === 'number') {
+        // إذا كان الوقت رقماً (مثل 0.5 لـ 12:00)
+        const totalMinutes = Math.round(time * 24 * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      } else if (typeof time === 'string') {
+        // إذا كان الوقت نصاً
+        return time;
+      }
+      return '00:00';
+    }
+
+    async function addEntry(entry) {
+      return fetch('/api/entries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify(entry)
+      }).then(response => response.json());
     }
   </script>
 </body>
