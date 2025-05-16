@@ -6,3 +6,4 @@ Flask-WTF==1.2.1
 openpyxl==3.1.2
 plotly
 arabic_reshaper
+bidi
