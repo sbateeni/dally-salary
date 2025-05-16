@@ -600,7 +600,7 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        const HOURLY_RATE = 14;
+        const HOURLY_RATE = 14;  // قيمة الساعة الواحدة
         let entries = [];
         const form = document.getElementById('workForm');
         const tableBody = document.querySelector('#entriesTable tbody');
@@ -722,6 +722,7 @@
                 return;
             }
 
+            // حساب الراتب (عدد الساعات × قيمة الساعة)
             const pay = totalHours * HOURLY_RATE;
 
             // الحصول على اسم اليوم من التاريخ المدخل

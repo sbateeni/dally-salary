@@ -27,7 +27,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 # Constants
-HOURLY_RATE = 14
+HOURLY_RATE = 14  # قيمة الساعة الواحدة
 
 # Days of the week in Arabic
 DAYS = {
