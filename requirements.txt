@@ -1,12 +1,17 @@
+streamlit==1.32.0
 Flask==3.0.2
-gunicorn==21.2.0
 Flask-SQLAlchemy==3.1.1
-Flask-Login==0.6.3
-Flask-WTF==1.2.1    
 openpyxl==3.1.2
+<<<<<<< HEAD
 streamlit==1.32.0
 pandas==2.2.1
 plotly==5.19.0
 arabic-reshaper==3.0.0
 python-bidi==0.4.2
 
+=======
+plotly==5.18.0
+arabic_reshaper
+python-bidi  # الاسم الصحيح للحزمة في PyPI
+pandas==2.0.3
+>>>>>>> 367b2e3944a7937023fb8aa1d9d9c3bb8fdfd995
