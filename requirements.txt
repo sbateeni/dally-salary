@@ -1,10 +1,10 @@
-Flask==3.0.2
+Flask==2.3.3
 Flask-SQLAlchemy==3.1.1
+Flask-WTF==1.2.1
+Werkzeug==2.3.7
+SQLAlchemy==2.0.23
+gunicorn==21.2.0
+python-dotenv==1.0.0
 openpyxl==3.1.2
-pandas==2.2.1
-plotly==5.19.0
 arabic-reshaper==3.0.0
 python-bidi==0.4.2
-Flask-Login==0.6.3
-Flask-WTF==1.2.1
-Werkzeug==3.0.1

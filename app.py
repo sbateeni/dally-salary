@@ -6,10 +6,14 @@ import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///work_hours.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///work_hours.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_SECRET_KEY'] = os.environ.get('WTF_CSRF_SECRET_KEY', 'your-csrf-secret-key-here')
+
+# تعديل عنوان قاعدة البيانات إذا كان من Render
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith("postgres://"):
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace("postgres://", "postgresql://", 1)
 
 db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
@@ -105,7 +109,9 @@ def delete_entry(entry_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+# إنشاء قاعدة البيانات عند بدء التشغيل
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True) 
