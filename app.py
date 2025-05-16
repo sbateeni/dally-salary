@@ -65,6 +65,9 @@ class WorkEntry(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    def calculate_pay(self):
+        return self.total_hours * HOURLY_RATE
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
