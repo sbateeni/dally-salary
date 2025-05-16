@@ -28,7 +28,17 @@ login_manager.login_view = 'login'
 
 # Constants
 HOURLY_RATE = 14
-OVERTIME_MULTIPLIER = 1.5
+
+# Days of the week in Arabic
+DAYS = {
+    0: 'الأحد',
+    1: 'الإثنين',
+    2: 'الثلاثاء',
+    3: 'الأربعاء',
+    4: 'الخميس',
+    5: 'الجمعة',
+    6: 'السبت'
+}
 
 # Models
 class User(UserMixin, db.Model):
@@ -50,7 +60,6 @@ class WorkEntry(db.Model):
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     total_hours = db.Column(db.Float, nullable=False)
-    overtime_hours = db.Column(db.Float, nullable=False)
     pay = db.Column(db.Float, nullable=False)
     note = db.Column(db.String(200))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -97,7 +106,6 @@ def get_entries():
         'start': entry.start_time.strftime('%H:%M'),
         'end': entry.end_time.strftime('%H:%M'),
         'totalHours': entry.total_hours,
-        'overtimeHours': entry.overtime_hours,
         'pay': entry.pay,
         'note': entry.note
     } for entry in entries])
@@ -111,7 +119,7 @@ def add_entry():
             return jsonify({'error': 'لم يتم استلام البيانات'}), 400
 
         # Validate required fields
-        required_fields = ['date', 'day', 'start', 'end', 'totalHours', 'overtimeHours', 'pay']
+        required_fields = ['date', 'day', 'start', 'end', 'totalHours', 'pay']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'حقل {field} مطلوب'}), 400
@@ -149,7 +157,6 @@ def add_entry():
             start_time=start_time,
             end_time=end_time,
             total_hours=float(data['totalHours']),
-            overtime_hours=float(data['overtimeHours']),
             pay=float(data['pay']),
             note=data.get('note', ''),
             user_id=current_user.id
@@ -166,7 +173,6 @@ def add_entry():
                 'start': entry.start_time.strftime('%H:%M'),
                 'end': entry.end_time.strftime('%H:%M'),
                 'totalHours': entry.total_hours,
-                'overtimeHours': entry.overtime_hours,
                 'pay': entry.pay,
                 'note': entry.note
             }
@@ -202,7 +208,7 @@ def edit_entry(date):
         data = request.get_json()
         
         # التحقق من البيانات المطلوبة
-        required_fields = ['start', 'end', 'totalHours', 'overtimeHours', 'pay', 'note']
+        required_fields = ['start', 'end', 'totalHours', 'pay', 'note']
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'جميع الحقول مطلوبة'}), 400
         
@@ -210,7 +216,6 @@ def edit_entry(date):
         entry.start_time = datetime.strptime(data['start'], '%H:%M').time()
         entry.end_time = datetime.strptime(data['end'], '%H:%M').time()
         entry.total_hours = float(data['totalHours'])
-        entry.overtime_hours = float(data['overtimeHours'])
         entry.pay = float(data['pay'])
         entry.note = data['note']
         
@@ -234,7 +239,6 @@ def search_entries(date):
         'start': entry.start_time.strftime('%H:%M'),
         'end': entry.end_time.strftime('%H:%M'),
         'totalHours': entry.total_hours,
-        'overtimeHours': entry.overtime_hours,
         'pay': entry.pay,
         'note': entry.note
     } for entry in entries])
@@ -264,10 +268,7 @@ def export_excel():
             'وقت البدء',
             'وقت الانتهاء',
             'عدد الساعات',
-            'الساعات الإضافية',
-            'قيمة الساعة الإضافية',
             'الدفع الكلي',
-            'مجموع الراتب',
             'ملاحظات'
         ]
         
@@ -296,9 +297,6 @@ def export_excel():
                 entry.start_time.strftime('%H:%M'),
                 entry.end_time.strftime('%H:%M'),
                 f"{entry.total_hours:.2f}",
-                f"{entry.overtime_hours:.2f}",
-                f"{(HOURLY_RATE * OVERTIME_MULTIPLIER):.2f}",
-                f"{entry.pay:.2f}",
                 f"{entry.pay:.2f}",
                 entry.note
             ]
